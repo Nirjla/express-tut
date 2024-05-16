@@ -1,4 +1,4 @@
-import express, { response } from "express";
+import express, { request, response } from "express";
 
 const app = express();
 app.use(express.json());
@@ -14,10 +14,31 @@ const users = [
     username: "Sita",
   },
 ];
-app.get("/api/users", (request, response) => {
+// creating middleware
+const loggingMiddleware = (request, response, next) => {
+  console.log(`${request.method} - ${request.url}`);
+  next();
+};
+const resolvedByUserId = (request, response, next) => {
+  const {
+    params: { id },
+  } = request;
+  const parsedId = parseInt(id);
+  if (isNaN(parsedId)) {
+    return response.status(400).send({ msg: "Bad Request Error" });
+  }
+  const userIndex = users.findIndex((user) => user.id === parsedId);
+  if (userIndex === -1) {
+    return response.status(404).send({ msg: "User Not Found" });
+  }
+  request.userIndex = userIndex;
+  next();
+};
+
+app.get("/api/users", loggingMiddleware, (request, response) => {
   // console.log(response)
   const { body } = request;
-
+  //query parameters
   const { filter, value } = request.query;
   if (!filter && !value) {
     return response.send(users);
@@ -33,21 +54,41 @@ app.post("/api/users", (request, response) => {
   const { body } = request;
   const newUser = { id: users.length + 1, ...body };
   users.push(newUser);
-  console.log(users)
+  console.log(users);
   return response.status(200).send("Users created successfully");
 });
 //route parameters
-app.get("/api/users/:id", (request, response) => {
-  console.log(request.params);
-  const parsedId = parseInt(request.params.id);
-  if (isNaN(parsedId)) {
-    return response.status(400).send({ msg: "Bad Request Error" });
+app.get("/api/users/:id",resolvedByUserId, (request, response) => {
+  const { userIndex } = request;
+  const findUser = users[userIndex];
+  if (!findUser) {
+    return response.status(404).send("User Not Found");
   }
-  const findUser = users.find((user) => user.id === parsedId);
   return response.send(findUser);
-  console.log(parsedId);
 });
-//query parameters
+
+// put request
+app.put("/api/users/:id", resolvedByUserId, (request, response) => {
+  const { body, userIndex } = request;
+  users[userIndex] = { id: users[userIndex].id, ...body };
+  return response.send(users).status(200);
+});
+
+// patch requests
+app.patch("/api/users/:id", resolvedByUserId, (request, response) => {
+  const { userIndex } = request;
+  users[userIndex] = { ...users[userIndex], ...body };
+  return response.send(users).status(200);
+});
+
+//delete requests
+app.delete("/api/users/:id", (request, response) => {
+  const { userIndex } = request;
+  users.splice(userIndex, 1);
+  return response.send(users).status(200);
+});
+
+// middleware
 
 app.listen(PORT, () => {
   console.log(`Running on Port ${PORT}`);
