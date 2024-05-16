@@ -1,60 +1,20 @@
-import express, { request, response } from "express";
-import {
-  query,
-  validationResult,
-  body,
-  checkSchema,
-  matchedData,
-} from "express-validator";
-import {
-  createUserValidation,
-  queryValidation,
-} from "./utils/validationSchemas.mjs";
-const app = express();
-app.use(express.json());
-const PORT = process.env.PORT || 3000;
+import { checkSchema, validationResult } from "express-validator";
+import { createUserValidation, queryValidation } from "../utils/validationSchemas.mjs";
+import { users } from "../utils/constants.mjs";
+import express from "express";
+import { resolvedByUserId } from "../utils/middlewares.mjs";
+const router = express.Router();
 
-const users = [
-  {
-    id: 1,
-    username: "nirjala",
-  },
-  {
-    id: 2,
-    username: "Sita",
-  },
-];
-// creating middleware
-const loggingMiddleware = (request, response, next) => {
-  console.log(`${request.method} - ${request.url}`);
-  next();
-};
-const resolvedByUserId = (request, response, next) => {
-  const {
-    params: { id },
-  } = request;
-  const parsedId = parseInt(id);
-  if (isNaN(parsedId)) {
-    return response.status(400).send({ msg: "Bad Request Error" });
-  }
-  const userIndex = users.findIndex((user) => user.id === parsedId);
-  if (userIndex === -1) {
-    return response.status(404).send({ msg: "User Not Found" });
-  }
-  request.userIndex = userIndex;
-  next();
-};
-
-app.get(
+router.get(
   "/api/users",
-  loggingMiddleware,
+  //   loggingMiddleware,
   checkSchema(queryValidation),
   (request, response) => {
     const result = validationResult(request);
     console.log(result);
-    if (!result.isEmpty()) {
-      return response.status(400).send({ errors: result.array() });
-    }
+    // if (!result.isEmpty()) {
+    //   return response.status(400).send({ errors: result.array() });
+    // }
     //query parameters
     const { filter, value } = request.query;
     if (!filter && !value) {
@@ -69,7 +29,8 @@ app.get(
     console.log(request.query);
   }
 );
-app.post(
+
+router.post(
   "/api/users",
   checkSchema(createUserValidation),
   (request, response) => {
@@ -88,7 +49,7 @@ app.post(
   }
 );
 //route parameters
-app.get("/api/users/:id", resolvedByUserId, (request, response) => {
+router.get("/api/users/:id", resolvedByUserId, (request, response) => {
   const { userIndex } = request;
   const findUser = users[userIndex];
   if (!findUser) {
@@ -98,26 +59,25 @@ app.get("/api/users/:id", resolvedByUserId, (request, response) => {
 });
 
 // put request
-app.put("/api/users/:id", resolvedByUserId, (request, response) => {
+router.put("/api/users/:id", resolvedByUserId, (request, response) => {
   const { body, userIndex } = request;
   users[userIndex] = { id: users[userIndex].id, ...body };
   return response.send(users).status(200);
 });
+0;
 
 // patch requests
-app.patch("/api/users/:id", resolvedByUserId, (request, response) => {
+router.patch("/api/users/:id", resolvedByUserId, (request, response) => {
   const { userIndex } = request;
   users[userIndex] = { ...users[userIndex], ...body };
   return response.send(users).status(200);
 });
 
 //delete requests
-app.delete("/api/users/:id", (request, response) => {
+router.delete("/api/users/:id", (request, response) => {
   const { userIndex } = request;
   users.splice(userIndex, 1);
   return response.send(users).status(200);
 });
 
-app.listen(PORT, () => {
-  console.log(`Running on Port ${PORT}`);
-});
+export default router;
