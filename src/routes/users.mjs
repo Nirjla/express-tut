@@ -1,24 +1,44 @@
 import { checkSchema, validationResult } from "express-validator";
-import { createUserValidation, queryValidation } from "../utils/validationSchemas.mjs";
+import {
+  createUserValidation,
+  queryValidation,
+} from "../utils/validationSchemas.mjs";
 import { users } from "../utils/constants.mjs";
 import express from "express";
 import { resolvedByUserId } from "../utils/middlewares.mjs";
 const router = express.Router();
 
 router.get(
-  "/api/users",
+  "/users",
   //   loggingMiddleware,
   checkSchema(queryValidation),
   (request, response) => {
     const result = validationResult(request);
-    console.log(result);
+    // console.log(result);
     // if (!result.isEmpty()) {
     //   return response.status(400).send({ errors: result.array() });
     // }
     //query parameters
+    // console.log(request.session)
+    console.log(request.sessionID);
+    request.sessionStore.get(request.session.id, (err, sessionData) => {
+      if (err) {
+        console.log(err);
+        throw err;
+      }
+      console.log(sessionData);
+    });
+    // console.log(request.signedCookies);
     const { filter, value } = request.query;
     if (!filter && !value) {
-      return response.send(users);
+      if (
+        request.signedCookies.hello &&
+        request.signedCookies.hello === "world"
+      )
+        return response.send(users);
+      else {
+        return response.send("The invalid cookie").status("403");
+      }
     }
     if (filter && value) {
       const filteredUsers = users.filter((user) =>
@@ -31,7 +51,7 @@ router.get(
 );
 
 router.post(
-  "/api/users",
+  "/users",
   checkSchema(createUserValidation),
   (request, response) => {
     // console.log(request.body);
@@ -49,7 +69,7 @@ router.post(
   }
 );
 //route parameters
-router.get("/api/users/:id", resolvedByUserId, (request, response) => {
+router.get("/users/:id", resolvedByUserId, (request, response) => {
   const { userIndex } = request;
   const findUser = users[userIndex];
   if (!findUser) {
@@ -59,7 +79,7 @@ router.get("/api/users/:id", resolvedByUserId, (request, response) => {
 });
 
 // put request
-router.put("/api/users/:id", resolvedByUserId, (request, response) => {
+router.put("/users/:id", resolvedByUserId, (request, response) => {
   const { body, userIndex } = request;
   users[userIndex] = { id: users[userIndex].id, ...body };
   return response.send(users).status(200);
@@ -67,14 +87,14 @@ router.put("/api/users/:id", resolvedByUserId, (request, response) => {
 0;
 
 // patch requests
-router.patch("/api/users/:id", resolvedByUserId, (request, response) => {
+router.patch("/users/:id", resolvedByUserId, (request, response) => {
   const { userIndex } = request;
   users[userIndex] = { ...users[userIndex], ...body };
   return response.send(users).status(200);
 });
 
 //delete requests
-router.delete("/api/users/:id", (request, response) => {
+router.delete("/users/:id", (request, response) => {
   const { userIndex } = request;
   users.splice(userIndex, 1);
   return response.send(users).status(200);
