@@ -34,3 +34,26 @@ export const queryValidation = {
     },
   },
 };
+
+export const cartValidation={
+  'item.name': {
+    isString: {
+      errorMessage: 'Name must be a string'
+    },
+    notEmpty: {
+      errorMessage: 'Name cannot be empty'
+    }
+  },
+  'item.quantity': {
+    isInt: {
+      options: { min: 1 },
+      errorMessage: 'Quantity must be an integer greater than 0'
+    }
+  },
+  'item.price': {
+    isFloat: {
+      options: { gt: 0 },
+      errorMessage: 'Price must be a positive number'
+    }
+  }
+}

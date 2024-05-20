@@ -2,7 +2,7 @@ import express, { request, response } from "express";
 import cookieParser from "cookie-parser";
 import routes from "./routes/index.mjs";
 import session from "express-session";
-
+import passport from "passport";
 const app = express();
 app.use(express.json());
 app.use(cookieParser("hello-world"));
@@ -26,6 +26,9 @@ app.get("/", (request, response) => {
   console.log(request.cookies);
   response.send("Hello World");
 });
+
+app.use(passport.initialize())
+app.use(passport.session())
 app.use("/api/", routes);
 // creating middleware
 const loggingMiddleware = (request, response, next) => {
